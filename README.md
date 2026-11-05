@@ -1,20 +1,84 @@
-# Native JSON Benchmark
+# JESON Native JSON Benchmark
+
+Correctness, speed, memory, and binary-size measurements for
+[JESON](https://github.com/mijelsma/jeson), compared with established C and
+C++ JSON libraries. This is a JESON-maintained fork of Milo Yip's
+[nativejson-benchmark](https://github.com/miloyip/nativejson-benchmark).
 
 Copyright(c) 2014-2016 Milo Yip (miloyip@gmail.com)
 
-[![Build Status](https://travis-ci.org/miloyip/nativejson-benchmark.svg?branch=master)](https://travis-ci.org/miloyip/nativejson-benchmark)
-
 ## Introduction
 
-This benchmark evaluates the conformance and performance of 41 open-source C/C++ libraries with JSON parsing/generation capabilities. Performance means speed, memory, and code size.
+This fork was created to develop JESON against repeatable evidence rather than
+isolated microbenchmarks. Its focused build compares JESON with cJSON,
+reflect-cpp, RapidJSON, nlohmann/json, and ArduinoJson using the same documents,
+operations, allocation tracker, conformance suite, and code-size harness.
 
-Performance should be concerned only if the results are correct. This benchmark also test the conformance of library towards the JSON standards ([RFC7159], [ECMA-404]).
+Correctness comes first: a fast parser that changes a number, accepts malformed
+input, or cannot round-trip a document is not a useful winner. Performance is
+then measured as parse/stringify/pretty-print time, memory, allocation count,
+and executable size.
 
-Performance of JSON parsing/generation may be critical for server-side applications, mobile/embedded systems, or any application that requires processing of large size or number of JSONs. Native (C/C++) libraries are important because they should provide the best possible performance, while other languages may create bindings of native libraries.
+The original all-library benchmark remains available below. The root CMake
+build and the current charts are the maintained JESON comparison lane.
 
-The results show that several performance measurements vary in large scale among libraries. For example, the parsing time can be over 100 times. These differences came from many factors, including design and implementation details. For example, memory allocation strategies, design of variant type for JSON, number-string conversions, etc.
+## Why JESON stands out
 
-This benchmark may be useful for optimizing existing libraries and developing new, high-performance libraries.
+JESON is primarily a typed embedded JSON library, not a DOM library. It parses
+straight into the destination aggregate, so normal application code does not
+need to build a generic tree and then copy/map it into a model. The optional
+`jeson::Value` DOM exists for schema-less documents and is used here only to
+make nativejson's DOM operations comparable.
+
+```cpp
+struct Device {
+    jeson::Field<"id", jeson::Required<std::string>> id;
+    jeson::Field<"port", jeson::Validator<int,
+        jeson::Minimum<1>, jeson::Maximum<65535>>> port = 8080;
+    jeson::Field<"enabled", bool> enabled = true;
+};
+
+Device device;
+auto errors = jeson::parse(payload, device); // JSON directly into Device
+auto json = jeson::toJson(device);
+```
+
+Its main strengths are:
+
+- **Typed by default:** direct JSON-to-aggregate parsing without a required DOM
+  or separate mapping layer.
+- **Correct:** the optional DOM passes all 136 checks in this benchmark,
+  including syntax, double conversion, Unicode strings, and round trips.
+- **Small:** the stripped DOM benchmark executable is 68.5 KiB—close to
+  RapidJSON, and smaller than the pinned nlohmann/json and cJSON builds.
+- **Fast output:** JESON has the lowest combined stringify and pretty-print
+  time in the checked three-document run.
+- **Competitive memory:** combined per-document parse peaks are close to
+  RapidJSON and nlohmann/json, and substantially below cJSON and reflect-cpp in
+  this run.
+- **Embedded-friendly API:** header-only, dependency-free C++20, no runtime
+  registration, and no exception-based parse error path.
+- **Schema and validation together:** macro-free field names, required values,
+  defaults, nested models, enums, optionals, vectors, patches, Pydantic-style
+  constraints, and accumulated path-aware errors.
+- **Portable integration:** CMake, ESP-IDF, PlatformIO, Arduino, Zephyr, Meson,
+  Bazel, Conan, and pkg-config metadata live in the JESON repository.
+
+### What the results do—and do not—claim
+
+| Area | Checked result | Interpretation |
+|---|---:|---|
+| Conformance | **136/136** | Tied with reflect-cpp for the complete checked result. |
+| Combined stringify | **7.7 ms** | Fastest of the six pinned adapters in this run. |
+| Combined pretty-print | **10.1 ms** | Fastest of the six pinned adapters in this run. |
+| Stripped DOM executable | **68.5 KiB** | 1.3 KiB above RapidJSON; below nlohmann/json, cJSON, and reflect-cpp. |
+| Combined parse peaks | **9.4 MiB** | Near RapidJSON/nlohmann; below cJSON, ArduinoJson, and reflect-cpp. |
+| Combined DOM parse | **34.9 ms** | Not the parse-speed leader; RapidJSON, cJSON, and nlohmann are faster here. |
+
+These numbers describe `jeson::Value`, the compatibility DOM lane. They do not
+quantify JESON's primary typed path, where no generic document tree is built.
+They also use reproducibly pinned—partly historical—comparison versions. Run
+the suite on the target compiler and device before making a product decision.
 
 ## Disclaimer
 
@@ -239,7 +303,11 @@ For simplicity, on Linux/OSX users can simply run `make` (or `make CONFIG=releas
 
 Some libraries, such as Boost, POCO, V8, etc., need to be installed by user manually.
 
-## Sample Results
+## Legacy Original Sample Results
+
+The charts below are retained from the upstream benchmark for historical
+context. They predate JESON; use the focused charts above for current JESON
+results.
 
 Update on: 2016-9-9
 
