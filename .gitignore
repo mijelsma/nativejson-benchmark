@@ -1,6 +1,7 @@
 /bin/*
 /build/gmake
 /build/vs*/
+/build-*/
 /intermediate
 /thirdparty/include/yajl
 /result/*.csv

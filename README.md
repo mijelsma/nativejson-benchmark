@@ -56,7 +56,54 @@ AllocCount  | Number of memory allocation (including `malloc`, `realloc()`, `new
 
 ## Libraries
 
-Currently 43 libraries are successfully benchmarked. They are listed in alphabetic order:
+This fork also includes a JESON C++20 adapter. JESON's normal fast path is
+typed, direct-to-struct parsing; this suite deliberately uses its optional
+`jeson::Value` DOM so the nativejson parse, stringify, prettify, statistics,
+memory, conformance, and code-size measurements remain comparable with the
+other schema-less DOM libraries.
+
+### Focused JESON comparison
+
+The root CMake build is a reproducible six-library lane containing JESON,
+cJSON, reflect-cpp, RapidJSON, nlohmann/json, and ArduinoJson. It builds only
+those adapters, configures reflect-cpp with JSON support only, instruments its
+bundled yyjson allocator, and creates an individual `jsonstat` executable for
+each library's code-size measurement.
+
+```sh
+git submodule update --init -- \
+  thirdparty/ArduinoJson thirdparty/cJSON thirdparty/jeson \
+  thirdparty/nlohmann thirdparty/rapidjson thirdparty/reflect-cpp
+cmake -S . -B build-selected -DCMAKE_BUILD_TYPE=Release \
+  -DNATIVEJSON_MACHINE=my-machine -DNATIVEJSON_ENABLE_NATIVE_ARCH=OFF
+cmake --build build-selected --parallel
+cd build-selected/bin
+./nativejson_release_x64_cmake --verify-only
+./nativejson_release_x64_cmake --conformance-only
+./nativejson_release_x64_cmake --performance-only
+```
+
+Or run `tools/run-selected.sh my-machine`. Set
+`NATIVEJSON_ENABLE_NATIVE_ARCH=ON` only when comparing repeated runs on the
+same CPU; it makes cross-machine results less portable. CSV output is written
+under `result/` and intentionally ignored because timings are machine-specific.
+For binary-size work, `tools/report-code-size.sh build-selected` prints both
+the nativejson raw executable size and a copy stripped of local symbols. The
+executables all perform the same parse-and-statistics operation; they are more
+meaningful than comparing whole library archives with different feature sets.
+
+The selected submodules are pinned for reproducibility. In particular, the
+original benchmark pins historical releases of ArduinoJson 5.6.6, cJSON
+1.5.0, nlohmann/json 2.1.1, and RapidJSON 1.1.0. The focused build does not
+pretend those are current releases: use the exact-pin result to track JESON or
+update all comparison pins and adapters together for a contemporary shootout.
+The old nlohmann adapter is compiled as C++17 because that release predates
+C++20 allocator removals; JESON and reflect-cpp compile as C++20.
+
+A checked example run, including limitations and exact environment, is in
+[`docs/results/apple-arm64-2026-11-05.md`](docs/results/apple-arm64-2026-11-05.md).
+
+Currently 45 libraries have adapters. They are listed in alphabetic order:
 
 Library | Language | Version | Notes
 --------|----------|---------|-------------------
@@ -83,6 +130,7 @@ Library | Language | Version | Notes
 [hjiang/JSON++](https://github.com/hjiang/jsonxx) | C++ | 
 [jsmn](https://github.com/zserge/jsmn) | C | | Not parsing number per se, so do it as post-process.
 [jvar](https://github.com/YasserAsmi/jvar) | C++ | v1.0.0 | gcc/clang only |
+[JESON](https://github.com/mijelsma/jeson) | C++20 | post-0.1.0 | Uses the optional insertion-ordered `jeson::Value` DOM in this suite. |
 [Jzon](https://github.com/Zguy/Jzon) | C++ | v2-1
 [nbsdx/SimpleJSON](https://github.com/nbsdx/SimpleJSON) | C++11 |
 [Nlohmann/json](https://github.com/nlohmann/json) | C++11 | v2.0.3
@@ -93,6 +141,7 @@ Library | Language | Version | Notes
 [qajson4c](https://github.com/USESystemEngineeringBV/qajson4c) | C | 1.0.0 | gcc/clang only |
 [Qt](http://www.qt.io/) | C++ | 5.6.1-1 | Need installation |
 [RapidJSON](https://github.com/miloyip/rapidjson) | C++ | v1.1.0 | There are four configurations: RapidJSON (default), RapidJSON_AutoUTF (transcoding any UTF JSON), RapidJSON_Insitu (*insitu* parsing) & RapidJSON_FullPrec (full precision number parsing)
+[reflect-cpp](https://github.com/getml/reflect-cpp) | C++20 | v0.27.1 | `rfl::Generic`; JSON-only build with bundled yyjson. |
 [sajson](https://github.com/chadaustin/sajson) | C++ | 
 [SimpleJSON](https://github.com/MJPA/SimpleJSON) | C++ | 
 [sheredom/json.h](https://github.com/sheredom/json.h) | C | | Not parsing number per se, so do it as post-process.

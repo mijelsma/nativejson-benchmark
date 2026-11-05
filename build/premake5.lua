@@ -156,6 +156,11 @@ solution "benchmark"
 			"../src/*.cpp",
 			"../src/tests/*.cpp"
 		}
+		-- These C++20 adapters are linked/configured by the focused CMake build.
+		removefiles {
+			"../src/tests/jesontest.cpp",
+			"../src/tests/reflectcpptest.cpp"
+		}
 
 		libdirs { "../bin",
                 "../thirdparty/simdjson"  
@@ -253,21 +258,23 @@ solution "jsonstat"
 
 		copyfiles("../thirdparty/include/yajl", "../thirdparty/yajl/src/api/*.h", "../thirdparty/simdjson/src/simdjson.cpp")
 
-    local testfiles = os.matchfiles("../src/tests/*.cpp")
-    for _, testfile in ipairs(testfiles) do
-        project("jsonstat_" .. path.getbasename(testfile))
-            kind "ConsoleApp"
-            files {
-            	"../src/jsonstat/jsonstatmain.cpp",
-            	"../src/memorystat.cpp",
-            	testfile
-			}
-			libdirs { "../bin/jsonstat" }
-			links "jsonclibs2"
-            setTargetObjDir("../bin/jsonstat")
+	local testfiles = os.matchfiles("../src/tests/*.cpp")
+	for _, testfile in ipairs(testfiles) do
+		if path.getbasename(testfile) ~= "jesontest" and path.getbasename(testfile) ~= "reflectcpptest" then
+			project("jsonstat_" .. path.getbasename(testfile))
+				kind "ConsoleApp"
+				files {
+					"../src/jsonstat/jsonstatmain.cpp",
+					"../src/memorystat.cpp",
+					testfile
+				}
+				libdirs { "../bin/jsonstat" }
+				links "jsonclibs2"
+				setTargetObjDir("../bin/jsonstat")
 
-      linkoptions { "../../thirdparty/ULib/src/ulib/.libs/libulib.a" }
+				linkoptions { "../../thirdparty/ULib/src/ulib/.libs/libulib.a" }
 
-			configuration "gmake"
-				buildoptions "-std=c++14"
+				configuration "gmake"
+					buildoptions "-std=c++14"
+		end
     end
