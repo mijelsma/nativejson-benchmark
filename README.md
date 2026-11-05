@@ -2,15 +2,18 @@
 
 Correctness, speed, memory, and binary-size measurements for
 [JESON](https://github.com/mijelsma/jeson), compared with established C and
-C++ JSON libraries. This is a JESON-maintained fork of Milo Yip's
+C++ JSON libraries. The project asks an embedded question: how much correctness
+and convenience can fit into limited flash and RAM? This is a JESON-maintained
+fork of Milo Yip's
 [nativejson-benchmark](https://github.com/miloyip/nativejson-benchmark).
 
 Copyright(c) 2014-2016 Milo Yip (miloyip@gmail.com)
 
 ## Introduction
 
-This fork was created to develop JESON against repeatable evidence rather than
-isolated microbenchmarks. Its focused build compares JESON with cJSON,
+This fork was created to develop JESON for constrained targets—ESP32, Nordic
+nRF/Zephyr, and similar devices—against repeatable evidence rather than isolated
+microbenchmarks. Its focused build compares JESON with cJSON,
 reflect-cpp, RapidJSON, nlohmann/json, and ArduinoJson using the same documents,
 operations, allocation tracker, conformance suite, and code-size harness.
 
@@ -24,24 +27,53 @@ build and the current charts are the maintained JESON comparison lane.
 
 ## Why JESON stands out
 
-JESON is primarily a typed embedded JSON library, not a DOM library. It parses
-straight into the destination aggregate, so normal application code does not
-need to build a generic tree and then copy/map it into a model. The optional
-`jeson::Value` DOM exists for schema-less documents and is used here only to
-make nativejson's DOM operations comparable.
+JESON is primarily a typed embedded JSON library, not a DOM library. It is
+designed for firmware that needs a pleasant interface but cannot casually spend
+flash and RAM on layers of generic infrastructure. It parses straight into the
+destination aggregate, so normal application code does not need to build a
+generic tree and then copy/map it into a model. The optional `jeson::Value` DOM
+exists for schema-less documents and is used here only to make nativejson's DOM
+operations comparable.
 
 ```cpp
-struct Device {
-    jeson::Field<"id", jeson::Required<std::string>> id;
-    jeson::Field<"port", jeson::Validator<int,
-        jeson::Minimum<1>, jeson::Maximum<65535>>> port = 8080;
-    jeson::Field<"enabled", bool> enabled = true;
+enum class Mode { SLEEP, NORMAL, BOOST };
+
+struct Radio {
+    jeson::Field<"channel", jeson::Validator<unsigned,
+        jeson::Minimum<11>, jeson::Maximum<26>>> channel = 15;
 };
 
-Device device;
-auto errors = jeson::parse(payload, device); // JSON directly into Device
-auto json = jeson::toJson(device);
+struct DeviceConfig {
+    jeson::Field<"device_id", jeson::Required<std::string>> deviceId;
+    jeson::Field<"radio", Radio> radio;
+    jeson::Field<"mode", Mode> mode = Mode::NORMAL;
+    jeson::Field<"sample_interval_ms", jeson::Validator<unsigned,
+        jeson::Minimum<100>, jeson::Maximum<60000>>> sampleInterval = 1000;
+    jeson::Field<"labels", std::vector<std::string>> labels;
+};
+
+DeviceConfig config;
+auto result = jeson::parse(payload, config); // JSON directly into the model
+if (result) {
+    config.sampleInterval = 5000;            // ordinary member access
+    auto json = jeson::toJson(config);        // same model writes JSON
+}
 ```
+
+### Why the syntax stays easy
+
+- `Field<"wire_name", T>` is the only mapping declaration. The JSON name and
+  C++ type cannot drift away in a separate registration table.
+- Fields support ordinary assignment, comparison, and nested member access;
+  wrapper plumbing does not leak into normal application code.
+- C++ initializers are JSON defaults. `Required<T>` makes key presence explicit,
+  while `Validator<T, ...>` composes Pydantic-style range and size rules.
+- Structs, enums, `std::optional`, and `std::vector` compose naturally, and the
+  same aggregate is serialized without a second conversion function.
+- Parsing returns accumulated, path-aware errors. Unknown keys can be ignored so
+  old and new firmware revisions can exchange configuration safely.
+- A `Patch<T>` model supports partial configuration or command updates without
+  weakening the requirements of the full model.
 
 Its main strengths are:
 
@@ -63,6 +95,25 @@ Its main strengths are:
   constraints, and accumulated path-aware errors.
 - **Portable integration:** CMake, ESP-IDF, PlatformIO, Arduino, Zephyr, Meson,
   Bazel, Conan, and pkg-config metadata live in the JESON repository.
+
+### How the programming models differ
+
+This is more useful than reading a timing chart alone: the libraries do not ask
+the application to write the same kind of code.
+
+| Library | Typical style | Where it is strongest | JESON's trade-off |
+|---|---|---|---|
+| **JESON** | Typed aggregate, direct parse, optional DOM | Known-schema embedded configuration, commands, and telemetry | Smaller, focused JSON API; requires C++20 and uses the standard containers selected by the model. |
+| **reflect-cpp** | Automatic reflection with typed and generic APIs | Rich compile-time reflection and many serialization formats | Closest inspiration, but broader in scope. JESON targets a compact JSON-only feature set. |
+| **ArduinoJson** | `JsonDocument` and variants | Embedded DOM work, explicit document capacity/allocator control | JESON puts the typed schema, defaults, and validation in the C++ model instead. |
+| **RapidJSON** | DOM, SAX, writer, custom allocators | Raw JSON performance and low-level control | JESON gives up some API breadth for direct models and less mapping code. |
+| **nlohmann/json** | STL-like dynamic JSON value | General-purpose ergonomics, conversions, and ecosystem | JESON does not require a generic tree before reaching a typed model. |
+| **cJSON** | C node tree and explicit ownership | Portable C projects and a straightforward DOM | JESON requires modern C++, but supplies typed conversion and validation automatically. |
+
+The focused adapters are pinned for reproducibility and several are historical
+versions. The table describes programming models, not a universal ranking, and
+the measured executable size is the complete benchmark operation—not a promise
+about the size of every firmware image.
 
 ### What the results do—and do not—claim
 
