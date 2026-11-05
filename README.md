@@ -103,6 +103,46 @@ C++20 allocator removals; JESON and reflect-cpp compile as C++20.
 A checked example run, including limitations and exact environment, is in
 [`docs/results/apple-arm64-2026-11-05.md`](docs/results/apple-arm64-2026-11-05.md).
 
+#### Focused results at a glance
+
+These charts show that checked Apple arm64 run. Orange is JESON; lower is
+better except for conformance. They compare schema-less DOM operation, not
+JESON's usual direct-to-typed-model path.
+
+##### Binary size
+
+![Stripped binary size comparison](docs/results/charts/selected-binary-size.svg)
+
+The executable performs the same parse-and-statistics job for every adapter.
+See the [detailed report](docs/results/apple-arm64-2026-11-05.md#binary-size) for
+both raw and stripped sizes and the embedded-toolchain caveat.
+
+##### Conformance
+
+![JSON conformance comparison](docs/results/charts/selected-conformance.svg)
+
+##### Parse time
+
+![DOM parse time comparison](docs/results/charts/selected-parse-time.svg)
+
+##### Parse memory
+
+![DOM parse peak allocation comparison](docs/results/charts/selected-parse-memory.svg)
+
+##### Stringify time
+
+![Stringify time comparison](docs/results/charts/selected-stringify-time.svg)
+
+##### Pretty-print time
+
+![Pretty-print time comparison](docs/results/charts/selected-prettify-time.svg)
+
+Regenerate the SVGs after updating the checked summary CSV with:
+
+```sh
+tools/generate-selected-charts.py
+```
+
 Currently 45 libraries have adapters. They are listed in alphabetic order:
 
 Library | Language | Version | Notes
