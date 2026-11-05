@@ -81,7 +81,7 @@ Its main strengths are:
   or separate mapping layer.
 - **Correct:** the optional DOM passes all 136 checks in this benchmark,
   including syntax, double conversion, Unicode strings, and round trips.
-- **Small:** the stripped DOM benchmark executable is 68.5 KiB—close to
+- **Small:** the stripped DOM benchmark executable is 68.3 KiB—close to
   RapidJSON, and smaller than the pinned nlohmann/json and cJSON builds.
 - **Fast output:** JESON has the lowest combined stringify and pretty-print
   time in the checked three-document run.
@@ -122,9 +122,9 @@ about the size of every firmware image.
 | Conformance | **136/136** | Tied with reflect-cpp for the complete checked result. |
 | Combined stringify | **7.7 ms** | Fastest of the six pinned adapters in this run. |
 | Combined pretty-print | **10.1 ms** | Fastest of the six pinned adapters in this run. |
-| Stripped DOM executable | **68.5 KiB** | 1.3 KiB above RapidJSON; below nlohmann/json, cJSON, and reflect-cpp. |
+| Stripped DOM executable | **68.3 KiB** | 1.2 KiB above RapidJSON; below nlohmann/json, cJSON, and reflect-cpp. |
 | Combined parse peaks | **9.4 MiB** | Near RapidJSON/nlohmann; below cJSON, ArduinoJson, and reflect-cpp. |
-| Combined DOM parse | **34.9 ms** | Not the parse-speed leader; RapidJSON, cJSON, and nlohmann are faster here. |
+| Combined DOM parse | **13.1 ms** | Second-fastest of the six pinned adapters in this run; RapidJSON remains the leader. |
 
 These numbers describe `jeson::Value`, the compatibility DOM lane. They do not
 quantify JESON's primary typed path, where no generic document tree is built.
@@ -202,6 +202,8 @@ Or run `tools/run-selected.sh my-machine`. Set
 `NATIVEJSON_ENABLE_NATIVE_ARCH=ON` only when comparing repeated runs on the
 same CPU; it makes cross-machine results less portable. CSV output is written
 under `result/` and intentionally ignored because timings are machine-specific.
+To benchmark an uncommitted JESON checkout without touching the pinned
+submodule, configure with `-DJESON_INCLUDE_DIR=/path/to/jeson/include`.
 For binary-size work, `tools/report-code-size.sh build-selected` prints both
 the nativejson raw executable size and a copy stripped of local symbols. The
 executables all perform the same parse-and-statistics operation; they are more

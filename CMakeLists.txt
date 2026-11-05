@@ -9,6 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(NATIVEJSON_ENABLE_NATIVE_ARCH "Compile with -march=native" OFF)
 option(NATIVEJSON_BUILD_CODE_SIZE "Build one stripped-down executable per adapter" ON)
 set(NATIVEJSON_MACHINE "local" CACHE STRING "Machine label used in result filenames")
+set(JESON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/jeson/include" CACHE PATH
+    "JESON include directory (override to benchmark a development checkout)")
 configure_file(cmake/machine.h.in generated/machine.h @ONLY)
 
 set(REFLECTCPP_ALL_FORMATS OFF CACHE BOOL "" FORCE)
@@ -55,7 +57,7 @@ set(NATIVEJSON_COMMON_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/ArduinoJson/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/jeson/include
+    ${JESON_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/rapidjson/include
 )
 
