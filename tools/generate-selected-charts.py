@@ -11,7 +11,8 @@ from typing import Callable
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "docs/results/apple-arm64-2026-11-05-summary.csv"
+DOM_SOURCE = ROOT / "docs/results/apple-arm64-2026-11-06-summary.csv"
+TYPED_SOURCE = ROOT / "docs/results/apple-arm64-2026-11-06-typed-summary.csv"
 OUTPUT = ROOT / "docs/results/charts"
 
 
@@ -26,7 +27,7 @@ class Metric:
     fixed_max: float | None = None
 
 
-METRICS = (
+DOM_METRICS = (
     Metric(
         "selected-binary-size.svg",
         "Binary size",
@@ -73,9 +74,33 @@ METRICS = (
     ),
 )
 
+TYPED_METRICS = (
+    Metric(
+        "selected-typed-parse-time.svg",
+        "JSON to application model",
+        "Representative embedded config • best of 5 × 100,000 • lower is better",
+        lambda row: float(row["parse_us"]),
+        lambda value: f"{value:.3f} µs",
+    ),
+    Metric(
+        "selected-typed-parse-memory.svg",
+        "Application-model parse peak",
+        "Parser + returned model heap peak • lower is better",
+        lambda row: float(row["peak_bytes"]),
+        lambda value: f"{value / 1024:.2f} KiB" if value >= 1024 else f"{value:.0f} B",
+    ),
+    Metric(
+        "selected-typed-binary-size.svg",
+        "Application-model executable size",
+        "Stripped parse + semantic-check executable • lower is better",
+        lambda row: float(row["stripped_bytes"]),
+        lambda value: f"{value / 1024:.1f} KiB",
+    ),
+)
 
-def load_rows() -> list[dict[str, str]]:
-    with SOURCE.open(newline="", encoding="utf-8") as source:
+
+def load_rows(source_path: Path) -> list[dict[str, str]]:
+    with source_path.open(newline="", encoding="utf-8") as source:
         return list(csv.DictReader(source))
 
 
@@ -84,7 +109,7 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
     values.sort(key=lambda item: item[1], reverse=not metric.lower_is_better)
 
     width = 1000
-    height = 450
+    height = max(450, 125 + len(values) * 48 + 70)
     label_x = 32
     bar_x = 280
     bar_width = 570
@@ -93,9 +118,9 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
     maximum = metric.fixed_max or max(value for _, value in values)
 
     lines = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 450" role="img">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" role="img">',
         f"  <title>{html.escape(metric.title)}</title>",
-        '  <rect width="1000" height="450" rx="12" fill="#ffffff" stroke="#e5e7eb"/>',
+        f'  <rect width="{width}" height="{height}" rx="12" fill="#ffffff" stroke="#e5e7eb"/>',
         f'  <text x="32" y="46" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#111827">{html.escape(metric.title)}</text>',
         f'  <text x="32" y="72" font-family="Arial, sans-serif" font-size="15" fill="#6b7280">{html.escape(metric.subtitle)}</text>',
     ]
@@ -104,7 +129,12 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
         y = first_y + index * row_height
         ratio = value / maximum if maximum else 0.0
         current_width = max(3.0, ratio * bar_width)
-        color = "#f97316" if library == "JESON DOM" else "#3b82f6"
+        if library == "JESON CompactDocument":
+            color = "#f97316"
+        elif library in ("JESON Value", "JESON typed"):
+            color = "#f59e0b"
+        else:
+            color = "#3b82f6"
         lines.extend(
             (
                 f'  <text x="{label_x}" y="{y + 16}" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#1f2937">{html.escape(library)}</text>',
@@ -116,11 +146,11 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
 
     lines.extend(
         (
-            '  <circle cx="32" cy="423" r="6" fill="#f97316"/>',
-            '  <text x="46" y="428" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON</text>',
-            '  <circle cx="120" cy="423" r="6" fill="#3b82f6"/>',
-            '  <text x="134" y="428" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Comparison libraries</text>',
-            '  <text x="968" y="428" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Apple arm64 • AppleClang 21 • 2026-11-05</text>',
+            f'  <circle cx="32" cy="{height - 27}" r="6" fill="#f97316"/>',
+            f'  <text x="46" y="{height - 22}" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON modes</text>',
+            f'  <circle cx="145" cy="{height - 27}" r="6" fill="#3b82f6"/>',
+            f'  <text x="159" y="{height - 22}" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Comparison libraries</text>',
+            f'  <text x="968" y="{height - 22}" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Apple arm64 • AppleClang 21 • 2026-11-06</text>',
             "</svg>",
             "",
         )
@@ -129,10 +159,13 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
 
 
 def main() -> None:
-    rows = load_rows()
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    for metric in METRICS:
-        (OUTPUT / metric.filename).write_text(render(metric, rows), encoding="utf-8")
+    dom_rows = load_rows(DOM_SOURCE)
+    typed_rows = load_rows(TYPED_SOURCE)
+    for metric in DOM_METRICS:
+        (OUTPUT / metric.filename).write_text(render(metric, dom_rows), encoding="utf-8")
+    for metric in TYPED_METRICS:
+        (OUTPUT / metric.filename).write_text(render(metric, typed_rows), encoding="utf-8")
 
 
 if __name__ == "__main__":

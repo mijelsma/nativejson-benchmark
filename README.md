@@ -31,9 +31,9 @@ JESON is primarily a typed embedded JSON library, not a DOM library. It is
 designed for firmware that needs a pleasant interface but cannot casually spend
 flash and RAM on layers of generic infrastructure. It parses straight into the
 destination aggregate, so normal application code does not need to build a
-generic tree and then copy/map it into a model. The optional `jeson::Value` DOM
-exists for schema-less documents and is used here only to make nativejson's DOM
-operations comparable.
+generic tree and then copy/map it into a model. For schema-less work, mutable
+`jeson::Value` and read-oriented `jeson::CompactDocument` provide two explicit
+DOM choices. Both are measured here, separately from the typed path.
 
 ```cpp
 enum class Mode { SLEEP, NORMAL, BOOST };
@@ -79,15 +79,17 @@ Its main strengths are:
 
 - **Typed by default:** direct JSON-to-aggregate parsing without a required DOM
   or separate mapping layer.
-- **Correct:** the optional DOM passes all 136 checks in this benchmark,
+- **Correct:** both JESON DOMs pass all 136 checks in this benchmark,
   including syntax, double conversion, Unicode strings, and round trips.
-- **Small:** the stripped DOM benchmark executable is 68.3 KiB—close to
-  RapidJSON, and smaller than the pinned nlohmann/json and cJSON builds.
+- **Small:** the normal stripped compact-DOM executable is 68.1 KiB. A
+  reproducible embedded-size profile (`-Oz`, ThinLTO, no exceptions/RTTI) is
+  51.4 KiB, meeting the optimistic sub-52 KiB target on this toolchain.
 - **Fast output:** JESON has the lowest combined stringify and pretty-print
   time in the checked three-document run.
-- **Competitive memory:** combined per-document parse peaks are close to
-  RapidJSON and nlohmann/json, and substantially below cJSON and reflect-cpp in
-  this run.
+- **Low generic parse RAM:** `CompactDocument` lowers the summed parse peaks
+  from 9.4 MiB for `Value` to 5.6 MiB and cuts allocation calls by about 94%.
+- **Tiny typed parse RAM:** the representative configuration parse peaks at
+  only 144 bytes because JESON writes directly into the application model.
 - **Embedded-friendly API:** header-only, dependency-free C++20, no runtime
   registration, and no exception-based parse error path.
 - **Schema and validation together:** macro-free field names, required values,
@@ -103,7 +105,7 @@ the application to write the same kind of code.
 
 | Library | Typical style | Where it is strongest | JESON's trade-off |
 |---|---|---|---|
-| **JESON** | Typed aggregate, direct parse, optional DOM | Known-schema embedded configuration, commands, and telemetry | Smaller, focused JSON API; requires C++20 and uses the standard containers selected by the model. |
+| **JESON** | Typed aggregate, direct parse; mutable and compact DOMs | Known-schema embedded configuration, commands, and telemetry | Smaller, focused JSON API; requires C++20 and uses the standard containers selected by the model. |
 | **reflect-cpp** | Automatic reflection with typed and generic APIs | Rich compile-time reflection and many serialization formats | Closest inspiration, but broader in scope. JESON targets a compact JSON-only feature set. |
 | **ArduinoJson** | `JsonDocument` and variants | Embedded DOM work, explicit document capacity/allocator control | JESON puts the typed schema, defaults, and validation in the C++ model instead. |
 | **RapidJSON** | DOM, SAX, writer, custom allocators | Raw JSON performance and low-level control | JESON gives up some API breadth for direct models and less mapping code. |
@@ -119,17 +121,19 @@ about the size of every firmware image.
 
 | Area | Checked result | Interpretation |
 |---|---:|---|
-| Conformance | **136/136** | Tied with reflect-cpp for the complete checked result. |
-| Combined stringify | **7.7 ms** | Fastest of the six pinned adapters in this run. |
-| Combined pretty-print | **10.1 ms** | Fastest of the six pinned adapters in this run. |
-| Stripped DOM executable | **68.3 KiB** | 1.2 KiB above RapidJSON; below nlohmann/json, cJSON, and reflect-cpp. |
-| Combined parse peaks | **9.4 MiB** | Near RapidJSON/nlohmann; below cJSON, ArduinoJson, and reflect-cpp. |
-| Combined DOM parse | **13.1 ms** | Second-fastest of the six pinned adapters in this run; RapidJSON remains the leader. |
+| Conformance | **136/136** | Both JESON DOMs pass every checked validation, number, string, and round-trip case. |
+| Combined compact-DOM parse | **10.2 ms** | Down from 13.4 ms for `Value`; below the 15 ms target and close to the 10 ms stretch target. |
+| Combined compact-DOM peaks | **5.64 MiB** | About 40% below `Value`; lowest summed parse peak in this checked DOM run. |
+| Combined stringify / pretty | **7.9 / 10.3 ms** | Output performance remains effectively unchanged. |
+| Normal stripped executable | **68.1 KiB** | Comparable schema-less Release build with exceptions and RTTI enabled. |
+| Embedded-size profile | **51.4 KiB** | JESON compact parse + statistics with size flags and unused runtime features disabled. |
+| Typed configuration peak | **144 bytes** | Direct-to-model heap peak; no generic document is constructed. |
 
-These numbers describe `jeson::Value`, the compatibility DOM lane. They do not
-quantify JESON's primary typed path, where no generic document tree is built.
-They also use reproducibly pinned—partly historical—comparison versions. Run
-the suite on the target compiler and device before making a product decision.
+The large-document charts are schema-less DOM measurements. The application-model
+charts use a separate small embedded configuration and distinguish native typed
+mapping from DOM plus manual field copying. The comparison versions are
+reproducibly pinned and partly historical; repeat with the target compiler and
+device before making a product decision.
 
 ## Disclaimer
 
@@ -171,15 +175,15 @@ AllocCount  | Number of memory allocation (including `malloc`, `realloc()`, `new
 
 ## Libraries
 
-This fork also includes a JESON C++20 adapter. JESON's normal fast path is
-typed, direct-to-struct parsing; this suite deliberately uses its optional
-`jeson::Value` DOM so the nativejson parse, stringify, prettify, statistics,
-memory, conformance, and code-size measurements remain comparable with the
-other schema-less DOM libraries.
+This fork includes two JESON C++20 DOM adapters. `jeson::Value` is mutable and
+STL-oriented; `jeson::CompactDocument` is read-oriented and uses paged 24-byte
+nodes. The nativejson operations remain schema-less and comparable with the
+other DOM libraries. A second benchmark parses the same representative device
+configuration into an application model.
 
 ### Focused JESON comparison
 
-The root CMake build is a reproducible six-library lane containing JESON,
+The root CMake build is a reproducible six-library lane containing two JESON modes,
 cJSON, reflect-cpp, RapidJSON, nlohmann/json, and ArduinoJson. It builds only
 those adapters, configures reflect-cpp with JSON support only, instruments its
 bundled yyjson allocator, and creates an individual `jsonstat` executable for
@@ -196,6 +200,7 @@ cd build-selected/bin
 ./nativejson_release_x64_cmake --verify-only
 ./nativejson_release_x64_cmake --conformance-only
 ./nativejson_release_x64_cmake --performance-only
+../../tools/run-typed.sh .. 100000
 ```
 
 Or run `tools/run-selected.sh my-machine`. Set
@@ -208,6 +213,9 @@ For binary-size work, `tools/report-code-size.sh build-selected` prints both
 the nativejson raw executable size and a copy stripped of local symbols. The
 executables all perform the same parse-and-statistics operation; they are more
 meaningful than comparing whole library archives with different feature sets.
+`tools/report-jeson-embedded-size.sh` builds the explicitly labeled JESON-only
+size profile with `-Oz`, ThinLTO, `-fno-exceptions`, and `-fno-rtti`; it is not
+silently mixed into the fair Release chart.
 
 The selected submodules are pinned for reproducibility. In particular, the
 original benchmark pins historical releases of ArduinoJson 5.6.6, cJSON
@@ -218,20 +226,20 @@ The old nlohmann adapter is compiled as C++17 because that release predates
 C++20 allocator removals; JESON and reflect-cpp compile as C++20.
 
 A checked example run, including limitations and exact environment, is in
-[`docs/results/apple-arm64-2026-11-05.md`](docs/results/apple-arm64-2026-11-05.md).
+[`docs/results/apple-arm64-2026-11-06.md`](docs/results/apple-arm64-2026-11-06.md).
 
 #### Focused results at a glance
 
-These charts show that checked Apple arm64 run. Orange is JESON; lower is
-better except for conformance. They compare schema-less DOM operation, not
-JESON's usual direct-to-typed-model path.
+These charts show that checked Apple arm64 run. Orange and amber are JESON;
+lower is better except for conformance. The first group compares schema-less
+DOM operation.
 
 ##### Binary size
 
 ![Stripped binary size comparison](docs/results/charts/selected-binary-size.svg)
 
 The executable performs the same parse-and-statistics job for every adapter.
-See the [detailed report](docs/results/apple-arm64-2026-11-05.md#binary-size) for
+See the [detailed report](docs/results/apple-arm64-2026-11-06.md#binary-size) for
 both raw and stripped sizes and the embedded-toolchain caveat.
 
 ##### Conformance
@@ -253,6 +261,17 @@ both raw and stripped sizes and the embedded-toolchain caveat.
 ##### Pretty-print time
 
 ![Pretty-print time comparison](docs/results/charts/selected-prettify-time.svg)
+
+##### JSON to application model
+
+This lane makes the mapping style explicit: JESON and reflect-cpp parse
+directly into a model; the remaining rows parse a DOM and manually copy fields.
+
+![Application-model parse time](docs/results/charts/selected-typed-parse-time.svg)
+
+![Application-model parse memory](docs/results/charts/selected-typed-parse-memory.svg)
+
+![Application-model binary size](docs/results/charts/selected-typed-binary-size.svg)
 
 Regenerate the SVGs after updating the checked summary CSV with:
 
@@ -287,7 +306,7 @@ Library | Language | Version | Notes
 [hjiang/JSON++](https://github.com/hjiang/jsonxx) | C++ | 
 [jsmn](https://github.com/zserge/jsmn) | C | | Not parsing number per se, so do it as post-process.
 [jvar](https://github.com/YasserAsmi/jvar) | C++ | v1.0.0 | gcc/clang only |
-[JESON](https://github.com/mijelsma/jeson) | C++20 | post-0.1.0 | Uses the optional insertion-ordered `jeson::Value` DOM in this suite. |
+[JESON](https://github.com/mijelsma/jeson) | C++20 | 0.2.0 | Uses `CompactDocument` and `Value` in the DOM lane, plus direct typed parsing in the application-model lane. |
 [Jzon](https://github.com/Zguy/Jzon) | C++ | v2-1
 [nbsdx/SimpleJSON](https://github.com/nbsdx/SimpleJSON) | C++11 |
 [Nlohmann/json](https://github.com/nlohmann/json) | C++11 | v2.0.3

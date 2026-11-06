@@ -24,3 +24,5 @@ cd "$build_directory/bin"
 ./nativejson_release_x64_cmake --verify-only
 ./nativejson_release_x64_cmake --conformance-only
 ./nativejson_release_x64_cmake --performance-only
+
+"$repository/tools/run-typed.sh" "$build_directory"

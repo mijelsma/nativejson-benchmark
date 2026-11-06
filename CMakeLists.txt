@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(NATIVEJSON_ENABLE_NATIVE_ARCH "Compile with -march=native" OFF)
 option(NATIVEJSON_BUILD_CODE_SIZE "Build one stripped-down executable per adapter" ON)
+option(NATIVEJSON_BUILD_TYPED "Build the JSON-to-application-model comparison" ON)
 set(NATIVEJSON_MACHINE "local" CACHE STRING "Machine label used in result filenames")
 set(JESON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/jeson/include" CACHE PATH
     "JESON include directory (override to benchmark a development checkout)")
@@ -41,11 +42,13 @@ if(MSVC)
 else()
     target_compile_options(reflectcpp_tracked PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/memorystat.h)
 endif()
+
 target_include_directories(reflectcpp_tracked PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(NATIVEJSON_ADAPTERS
     src/tests/arduinojsontest.cpp
     src/tests/cjsontest.cpp
+    src/tests/compactjesontest.cpp
     src/tests/jesontest.cpp
     src/tests/nlohmanntest.cpp
     src/tests/rapidjsontest.cpp
@@ -82,6 +85,44 @@ if(MSVC)
     set_source_files_properties(src/tests/nlohmanntest.cpp PROPERTIES COMPILE_OPTIONS /std:c++17)
 else()
     set_source_files_properties(src/tests/nlohmanntest.cpp PROPERTIES COMPILE_OPTIONS -std=c++17)
+endif()
+
+if(NATIVEJSON_BUILD_TYPED)
+    function(add_typed_benchmark name definition)
+        set(extra_sources "")
+        set(extra_libraries "")
+        if(name STREQUAL "cjson")
+            list(APPEND extra_sources src/cjsonlibs/cjson_all.c)
+        elseif(name STREQUAL "reflectcpp")
+            list(APPEND extra_libraries reflectcpp_tracked)
+        endif()
+
+        add_executable(typed_${name}
+            src/typed/typed_benchmark.cpp
+            src/memorystat.cpp
+            ${extra_sources}
+        )
+        nativejson_common(typed_${name})
+        target_compile_definitions(typed_${name} PRIVATE ${definition})
+        target_link_libraries(typed_${name} PRIVATE ${extra_libraries})
+        set_target_properties(typed_${name} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/typed
+        )
+    endfunction()
+
+    add_typed_benchmark(jeson TYPED_JESON=1)
+    add_typed_benchmark(jeson_value TYPED_JESON_VALUE=1)
+    add_typed_benchmark(jeson_compact TYPED_JESON_COMPACT=1)
+    add_typed_benchmark(reflectcpp TYPED_REFLECTCPP=1)
+    add_typed_benchmark(nlohmann TYPED_NLOHMANN=1)
+    add_typed_benchmark(rapidjson TYPED_RAPIDJSON=1)
+    add_typed_benchmark(arduinojson TYPED_ARDUINOJSON=1)
+    add_typed_benchmark(cjson TYPED_CJSON=1)
+    if(MSVC)
+        target_compile_options(typed_nlohmann PRIVATE /std:c++17)
+    else()
+        target_compile_options(typed_nlohmann PRIVATE -std=c++17)
+    endif()
 endif()
 
 add_executable(nativejson_selected
