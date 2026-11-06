@@ -2,8 +2,8 @@ library,mapping,iterations,parse_us,peak_bytes,alloc_count,checksum,raw_bytes,st
 ArduinoJson 5.6.6,DOM + manual mapping,100000,1.008186,1488,10,3158,74112,70496
 cJSON 1.5.0,DOM + manual mapping,100000,2.131910,1456,36,3158,75992,73240
 JESON typed,native direct-to-model,100000,0.791041,144,6,3158,74584,70136
-JESON CompactDocument,compact DOM + manual mapping,100000,1.033835,2736,10,3158,74384,70096
-JESON Value,DOM + manual mapping,100000,1.258739,960,14,3158,83520,70368
+JESON Compact DOM,CompactDocument + manual mapping,100000,1.033835,2736,10,3158,74384,70096
+JESON Mutable DOM,Value + manual mapping,100000,1.258739,960,14,3158,83520,70368
 nlohmann/json 2.1.1,DOM + manual mapping,100000,2.323712,1200,25,3158,103136,89552
 RapidJSON 1.1.0,DOM + manual mapping,100000,1.190961,83296,13,3158,74784,69776
 reflect-cpp 0.27.1,native direct-to-model,100000,0.372105,960,4,3158,450768,389936

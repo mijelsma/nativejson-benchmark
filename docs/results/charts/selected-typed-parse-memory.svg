@@ -7,7 +7,7 @@
   <rect x="280" y="125" width="570" height="24" rx="6" fill="#f3f4f6"/>
   <rect x="280" y="125" width="3.0" height="24" rx="6" fill="#f59e0b"/>
   <text x="870" y="142" font-family="monospace" font-size="14" font-weight="600" fill="#374151">144 B</text>
-  <text x="32" y="189" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#1f2937">JESON Value</text>
+  <text x="32" y="189" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#1f2937">JESON Mutable DOM</text>
   <rect x="280" y="173" width="570" height="24" rx="6" fill="#f3f4f6"/>
   <rect x="280" y="173" width="6.6" height="24" rx="6" fill="#f59e0b"/>
   <text x="870" y="190" font-family="monospace" font-size="14" font-weight="600" fill="#374151">960 B</text>
@@ -27,7 +27,7 @@
   <rect x="280" y="365" width="570" height="24" rx="6" fill="#f3f4f6"/>
   <rect x="280" y="365" width="10.2" height="24" rx="6" fill="#3b82f6"/>
   <text x="870" y="382" font-family="monospace" font-size="14" font-weight="600" fill="#374151">1.45 KiB</text>
-  <text x="32" y="429" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#1f2937">JESON CompactDocument</text>
+  <text x="32" y="429" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#1f2937">JESON Compact DOM</text>
   <rect x="280" y="413" width="570" height="24" rx="6" fill="#f3f4f6"/>
   <rect x="280" y="413" width="18.7" height="24" rx="6" fill="#f97316"/>
   <text x="870" y="430" font-family="monospace" font-size="14" font-weight="600" fill="#374151">2.67 KiB</text>

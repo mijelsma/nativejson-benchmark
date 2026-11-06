@@ -129,9 +129,9 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
         y = first_y + index * row_height
         ratio = value / maximum if maximum else 0.0
         current_width = max(3.0, ratio * bar_width)
-        if library == "JESON CompactDocument":
+        if library == "JESON Compact DOM":
             color = "#f97316"
-        elif library in ("JESON Value", "JESON typed"):
+        elif library in ("JESON Mutable DOM", "JESON typed"):
             color = "#f59e0b"
         else:
             color = "#3b82f6"

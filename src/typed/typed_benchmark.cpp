@@ -107,8 +107,8 @@ bool parseModel(std::string_view json, ResultModel& model) {
 #elif defined(TYPED_JESON_VALUE)
 
 using ResultModel = PlainModel;
-constexpr const char* LIBRARY = "JESON Value";
-constexpr const char* MAPPING = "DOM + manual mapping";
+constexpr const char* LIBRARY = "JESON Mutable DOM";
+constexpr const char* MAPPING = "Value + manual mapping";
 
 bool parseModel(std::string_view json, ResultModel& model) {
     jeson::Value document;
@@ -154,8 +154,8 @@ bool parseModel(std::string_view json, ResultModel& model) {
 #elif defined(TYPED_JESON_COMPACT)
 
 using ResultModel = PlainModel;
-constexpr const char* LIBRARY = "JESON CompactDocument";
-constexpr const char* MAPPING = "compact DOM + manual mapping";
+constexpr const char* LIBRARY = "JESON Compact DOM";
+constexpr const char* MAPPING = "CompactDocument + manual mapping";
 
 bool parseModel(std::string_view json, ResultModel& model) {
     jeson::CompactDocument document;

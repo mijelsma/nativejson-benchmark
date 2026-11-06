@@ -31,9 +31,21 @@ JESON is primarily a typed embedded JSON library, not a DOM library. It is
 designed for firmware that needs a pleasant interface but cannot casually spend
 flash and RAM on layers of generic infrastructure. It parses straight into the
 destination aggregate, so normal application code does not need to build a
-generic tree and then copy/map it into a model. For schema-less work, mutable
-`jeson::Value` and read-oriented `jeson::CompactDocument` provide two explicit
-DOM choices. Both are measured here, separately from the typed path.
+generic tree and then copy/map it into a model.
+
+The benchmark contains three JESON rows because it measures three distinct use
+cases—not three performance settings for one API:
+
+| Benchmark label | C++ API | Use it when |
+|---|---|---|
+| **JESON typed** | `Field`, structs, `parse(json, model)` | The schema is known. JSON is parsed directly into the model without a DOM. |
+| **JESON Mutable DOM** | `jeson::Value` | The schema is unknown and the generic JSON tree must be edited. |
+| **JESON Compact DOM** | `jeson::CompactDocument` | The schema is unknown and the document only needs to be inspected, forwarded, or serialized. |
+
+The compact-DOM optimization is schema-less only. It did **not** change the
+typed parser; the typed benchmark shows the already-existing direct-to-model
+path rather than a 0.1-to-0.2 speedup. For a known device configuration, typed
+JESON remains the intended and lowest-RAM JESON API in this run.
 
 ```cpp
 enum class Mode { SLEEP, NORMAL, BOOST };
@@ -79,15 +91,16 @@ Its main strengths are:
 
 - **Typed by default:** direct JSON-to-aggregate parsing without a required DOM
   or separate mapping layer.
-- **Correct:** both JESON DOMs pass all 136 checks in this benchmark,
+- **Correct:** both schema-less JESON DOMs pass all 136 checks in this benchmark,
   including syntax, double conversion, Unicode strings, and round trips.
 - **Small:** the normal stripped compact-DOM executable is 68.1 KiB. A
   reproducible embedded-size profile (`-Oz`, ThinLTO, no exceptions/RTTI) is
   51.4 KiB, meeting the optimistic sub-52 KiB target on this toolchain.
 - **Fast output:** JESON has the lowest combined stringify and pretty-print
   time in the checked three-document run.
-- **Low generic parse RAM:** `CompactDocument` lowers the summed parse peaks
-  from 9.4 MiB for `Value` to 5.6 MiB and cuts allocation calls by about 94%.
+- **Low generic parse RAM:** the Compact DOM (`CompactDocument`) lowers the
+  summed parse peaks from 9.4 MiB for the Mutable DOM (`Value`) to 5.6 MiB and
+  cuts allocation calls by about 94%.
 - **Tiny typed parse RAM:** the representative configuration parse peaks at
   only 144 bytes because JESON writes directly into the application model.
 - **Embedded-friendly API:** header-only, dependency-free C++20, no runtime
@@ -129,11 +142,12 @@ about the size of every firmware image.
 | Embedded-size profile | **51.4 KiB** | JESON compact parse + statistics with size flags and unused runtime features disabled. |
 | Typed configuration peak | **144 bytes** | Direct-to-model heap peak; no generic document is constructed. |
 
-The large-document charts are schema-less DOM measurements. The application-model
-charts use a separate small embedded configuration and distinguish native typed
-mapping from DOM plus manual field copying. The comparison versions are
-reproducibly pinned and partly historical; repeat with the target compiler and
-device before making a product decision.
+The large-document charts are schema-less DOM measurements. The
+application-model charts use a separate small embedded configuration and
+distinguish native typed mapping from DOM plus manual field copying. They are
+not a before/after measurement of JESON's typed parser. The comparison versions
+are reproducibly pinned and partly historical; repeat with the target compiler
+and device before making a product decision.
 
 ## Disclaimer
 
@@ -175,11 +189,12 @@ AllocCount  | Number of memory allocation (including `malloc`, `realloc()`, `new
 
 ## Libraries
 
-This fork includes two JESON C++20 DOM adapters. `jeson::Value` is mutable and
-STL-oriented; `jeson::CompactDocument` is read-oriented and uses paged 24-byte
-nodes. The nativejson operations remain schema-less and comparable with the
-other DOM libraries. A second benchmark parses the same representative device
-configuration into an application model.
+This fork includes two JESON C++20 schema-less adapters. **JESON Mutable DOM**
+uses the editable, STL-oriented `jeson::Value` type. **JESON Compact DOM** uses
+the read-only, paged `jeson::CompactDocument` type with 24-byte nodes. The
+nativejson operations remain schema-less and comparable with the other DOM
+libraries. A separate benchmark parses the same representative device
+configuration directly into a typed application model.
 
 ### Focused JESON comparison
 
@@ -264,8 +279,10 @@ both raw and stripped sizes and the embedded-toolchain caveat.
 
 ##### JSON to application model
 
-This lane makes the mapping style explicit: JESON and reflect-cpp parse
-directly into a model; the remaining rows parse a DOM and manually copy fields.
+This lane makes the mapping style explicit: the **JESON typed** and reflect-cpp
+rows parse directly into a model. The Compact DOM and Mutable DOM rows are
+included to show the cost of choosing schema-less parsing plus manual field
+copying; they are not implementations used by the typed API.
 
 ![Application-model parse time](docs/results/charts/selected-typed-parse-time.svg)
 

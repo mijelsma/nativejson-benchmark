@@ -24,7 +24,7 @@ public:
 class CompactJesonTest final : public TestBase {
 public:
 #if TEST_INFO
-    const char* GetName() const override { return "JESON CompactDocument (C++20)"; }
+    const char* GetName() const override { return "JESON Compact DOM (CompactDocument, C++20)"; }
     const char* GetFilename() const override { return __FILE__; }
 #endif
 

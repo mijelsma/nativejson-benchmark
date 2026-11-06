@@ -58,7 +58,7 @@ public:
 class JesonTest final : public TestBase {
 public:
 #if TEST_INFO
-    const char* GetName() const override { return "JESON Value (C++20)"; }
+    const char* GetName() const override { return "JESON Mutable DOM (Value, C++20)"; }
     const char* GetFilename() const override { return __FILE__; }
 #endif
 
