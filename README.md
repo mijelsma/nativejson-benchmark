@@ -40,12 +40,20 @@ cases—not three performance settings for one API:
 |---|---|---|
 | **JESON typed** | `Field`, structs, `parse(json, model)` | The schema is known. JSON is parsed directly into the model without a DOM. |
 | **JESON Mutable DOM** | `jeson::Value` | The schema is unknown and the generic JSON tree must be edited. |
-| **JESON Compact DOM** | `jeson::CompactDocument` | The schema is unknown and the document only needs to be inspected, forwarded, or serialized. |
+| **JESON Compact DOM** | `jeson::CompactDocument` | The schema is unknown and the document must be inspected or selectively reserialized, but not edited. |
 
 The compact-DOM optimization is schema-less only. It did **not** change the
 typed parser; the typed benchmark shows the already-existing direct-to-model
 path rather than a 0.1-to-0.2 speedup. For a known device configuration, typed
 JESON remains the intended and lowest-RAM JESON API in this run.
+
+The Compact DOM has a deliberately narrow role: gateways, protocol bridges,
+and diagnostics that must traverse a larger unknown-schema document. It is not
+the recommended API for known device messages, editable JSON, or blind
+pass-through. Those cases should use typed JESON, the Mutable DOM, or the
+original input bytes without parsing. Its fixed page cost can also make it use
+more memory than the Mutable DOM for a tiny document—the large-DOM result below
+does not mean it wins every payload size.
 
 ```cpp
 enum class Mode { SLEEP, NORMAL, BOOST };
@@ -149,6 +157,12 @@ not a before/after measurement of JESON's typed parser. The comparison versions
 are reproducibly pinned and partly historical; repeat with the target compiler
 and device before making a product decision.
 
+More specifically, the application-model lane uses native typed parsing only
+for **JESON typed** and **reflect-cpp**. ArduinoJson, cJSON, nlohmann/json,
+RapidJSON, JESON Mutable DOM, and JESON Compact DOM parse a generic DOM and then
+copy the fields manually. The chart compares the completed mapping task; it
+does not claim that every row is a native typed API.
+
 ## Disclaimer
 
 The original author (Milo Yip) of this benchmark is also the primary author of [RapidJSON](https://github.com/miloyip/rapidjson).
@@ -246,8 +260,8 @@ A checked example run, including limitations and exact environment, is in
 #### Focused results at a glance
 
 These charts show that checked Apple arm64 run. Orange and amber are JESON;
-lower is better except for conformance. The first group compares schema-less
-DOM operation.
+lower is better except for conformance. The first group compares only
+schema-less DOM operation. It does not measure JESON's normal typed path.
 
 ##### Binary size
 

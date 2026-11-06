@@ -36,7 +36,7 @@
   <rect x="280" y="461" width="570.0" height="24" rx="6" fill="#3b82f6"/>
   <text x="870" y="478" font-family="monospace" font-size="14" font-weight="600" fill="#374151">380.8 KiB</text>
   <circle cx="32" cy="552" r="6" fill="#f97316"/>
-  <text x="46" y="557" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON modes</text>
+  <text x="46" y="557" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON API rows</text>
   <circle cx="145" cy="552" r="6" fill="#3b82f6"/>
   <text x="159" y="557" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Comparison libraries</text>
   <text x="968" y="557" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Apple arm64 • AppleClang 21 • 2026-11-06</text>

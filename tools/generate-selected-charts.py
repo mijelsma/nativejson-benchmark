@@ -31,14 +31,14 @@ DOM_METRICS = (
     Metric(
         "selected-binary-size.svg",
         "Binary size",
-        "Stripped parse + statistics executable • lower is better",
+        "Schema-less parse + statistics executable • lower is better",
         lambda row: float(row["stripped_bytes"]),
         lambda value: f"{value / 1024:.1f} KiB",
     ),
     Metric(
         "selected-conformance.svg",
         "JSON conformance",
-        "Correct checks out of 136 • higher is better",
+        "Schema-less DOM checks correct out of 136 • higher is better",
         lambda row: 100.0 * float(row["conformance_correct"]) / float(row["conformance_total"]),
         lambda value: f"{value:.1f}%",
         lower_is_better=False,
@@ -61,14 +61,14 @@ DOM_METRICS = (
     Metric(
         "selected-stringify-time.svg",
         "Stringify time",
-        "Canada + CITM + Twitter • best of 10 • lower is better",
+        "Schema-less DOM • Canada + CITM + Twitter • lower is better",
         lambda row: float(row["stringify_ms"]),
         lambda value: f"{value:.1f} ms",
     ),
     Metric(
         "selected-prettify-time.svg",
         "Pretty-print time",
-        "Canada + CITM + Twitter • best of 10 • lower is better",
+        "Schema-less DOM • Canada + CITM + Twitter • lower is better",
         lambda row: float(row["prettify_ms"]),
         lambda value: f"{value:.1f} ms",
     ),
@@ -147,7 +147,7 @@ def render(metric: Metric, rows: list[dict[str, str]]) -> str:
     lines.extend(
         (
             f'  <circle cx="32" cy="{height - 27}" r="6" fill="#f97316"/>',
-            f'  <text x="46" y="{height - 22}" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON modes</text>',
+            f'  <text x="46" y="{height - 22}" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">JESON API rows</text>',
             f'  <circle cx="145" cy="{height - 27}" r="6" fill="#3b82f6"/>',
             f'  <text x="159" y="{height - 22}" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Comparison libraries</text>',
             f'  <text x="968" y="{height - 22}" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#6b7280">Apple arm64 • AppleClang 21 • 2026-11-06</text>',
